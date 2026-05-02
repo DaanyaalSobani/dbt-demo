@@ -5,7 +5,8 @@
       "Bash(chmod +x \"c:\\\\Users\\\\Owner\\\\Documents\\\\Projects\\\\dbt-demo\\\\scripts\\\\\"*.sh && bash \"c:\\\\Users\\\\Owner\\\\Documents\\\\Projects\\\\dbt-demo\\\\scripts\\\\show_raw.sh\")",
       "Bash(chmod +x scripts/*.sh)",
       "Bash(bash scripts/show_raw.sh)",
-      "Bash(bash scripts/show_marts.sh)"
+      "Bash(bash scripts/show_marts.sh)",
+      "Bash(bash scripts/run_stored_procs.sh)"
     ]
   }
 }
