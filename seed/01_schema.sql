@@ -1,7 +1,7 @@
 create schema if not exists raw;
 
 create table raw.customers (
-    id          integer primary key,
+    id          integer generated always as identity primary key,
     first_name  text not null,
     last_name   text not null,
     email       text not null,
@@ -9,7 +9,7 @@ create table raw.customers (
 );
 
 create table raw.orders (
-    id           integer primary key,
+    id           integer generated always as identity primary key,
     customer_id  integer not null references raw.customers(id),
     order_date   date not null,
     status       text not null,

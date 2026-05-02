@@ -11,7 +11,10 @@
       "user": "dbt",
       "password": "",
       "database": "dbt_demo",
-      "savePassword": true
+      "savePassword": true,
+      "groupId": "C68D6B3B-706D-4CD4-8212-2D17F1D54842",
+      "expiresOn": 0,
+      "sshPassword": ""
     }
   ]
 }
