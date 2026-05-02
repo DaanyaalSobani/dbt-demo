@@ -1,0 +1,12 @@
+dbt_demo:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: localhost
+      port: 5432
+      user: dbt
+      password: dbt
+      dbname: dbt_demo
+      schema: analytics
+      threads: 4

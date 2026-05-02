@@ -1,0 +1,17 @@
+{
+  "files.associations": {
+    "*.sql": "jinja-sql"
+  },
+  "pgsql.connections": [
+    {
+      "id": "dbt-demo-local",
+      "profileName": "dbt-demo (local)",
+      "server": "localhost",
+      "port": 5432,
+      "user": "dbt",
+      "password": "",
+      "database": "dbt_demo",
+      "savePassword": true
+    }
+  ]
+}

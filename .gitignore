@@ -1,0 +1,17 @@
+# dbt
+target/
+dbt_packages/
+logs/
+.user.yml
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env.local
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp

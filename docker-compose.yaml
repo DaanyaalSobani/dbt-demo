@@ -1,0 +1,17 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: dbt-demo-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: dbt
+      POSTGRES_PASSWORD: dbt
+      POSTGRES_DB: dbt_demo
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./seed:/docker-entrypoint-initdb.d
+
+volumes:
+  postgres_data:
