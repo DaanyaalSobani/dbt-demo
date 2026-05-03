@@ -1,0 +1,12 @@
+# Local dev only — auto-merged by `docker compose up` on top of docker-compose.yaml.
+# Exposes Postgres on 127.0.0.1:5432 so dbt and the VS Code SQL extension on your
+# laptop can connect. Bound to loopback so nothing on the network can reach it.
+#
+# When deploying (e.g. to a hosted demo box), run with the base file only to keep
+# Postgres reachable on the docker network only:
+#
+#     docker compose -f docker-compose.yaml up -d
+services:
+  postgres:
+    ports:
+      - "127.0.0.1:5432:5432"

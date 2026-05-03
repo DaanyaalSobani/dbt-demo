@@ -3,7 +3,7 @@ dbt_demo:
   outputs:
     dev:
       type: postgres
-      host: localhost
+      host: "{{ env_var('DBT_HOST', 'localhost') }}"
       port: 5432
       user: dbt
       password: dbt

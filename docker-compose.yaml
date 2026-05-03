@@ -7,11 +7,42 @@ services:
       POSTGRES_USER: dbt
       POSTGRES_PASSWORD: dbt
       POSTGRES_DB: dbt_demo
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./seed:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dbt -d dbt_demo"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  pgweb:
+    image: sosedoff/pgweb:latest
+    container_name: dbt-demo-pgweb
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://explorer:explorer@postgres:5432/dbt_demo?sslmode=disable
+      PGWEB_READ_ONLY: "true"
+      PGWEB_LOCK_SESSION: "true"
+    ports:
+      - "8081:8081"
+
+  dbt-docs:
+    build:
+      context: .
+      dockerfile: dbt-docs.Dockerfile
+    container_name: dbt-demo-dbt-docs
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DBT_HOST: postgres
+    ports:
+      - "8080:8080"
 
 volumes:
   postgres_data:

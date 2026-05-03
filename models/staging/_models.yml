@@ -1,0 +1,35 @@
+version: 2
+
+models:
+  - name: stg_customers
+    description: One row per customer, cleaned from raw.customers.
+    columns:
+      - name: customer_id
+        description: Surrogate key from the source system.
+        tests:
+          - unique
+          - not_null
+      - name: email
+        tests:
+          - not_null
+
+  - name: stg_orders
+    description: One row per order, cleaned from raw.orders.
+    columns:
+      - name: order_id
+        tests:
+          - unique
+          - not_null
+      - name: customer_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_customers')
+              field: customer_id
+      - name: status
+        tests:
+          - accepted_values:
+              values: ['completed', 'shipped', 'pending', 'returned']
+      - name: amount
+        tests:
+          - not_null

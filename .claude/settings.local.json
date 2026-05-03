@@ -6,7 +6,9 @@
       "Bash(chmod +x scripts/*.sh)",
       "Bash(bash scripts/show_raw.sh)",
       "Bash(bash scripts/show_marts.sh)",
-      "Bash(bash scripts/run_stored_procs.sh)"
+      "Bash(bash scripts/run_stored_procs.sh)",
+      "Bash(docker pull *)",
+      "Bash(docker run *)"
     ]
   }
 }
