@@ -1,16 +1,38 @@
 version: 2
 
 models:
-  - name: customer_orders
-    description: One row per customer with order rollups.
+  - name: dim_customers
+    description: Conformed customer dimension with order and behavior rollups.
     columns:
       - name: customer_id
+        tests: [unique, not_null]
+      - name: lifecycle_segment
         tests:
-          - unique
-          - not_null
-      - name: order_count
+          - accepted_values:
+              values: ['active', 'lapsing', 'dormant', 'never_purchased']
+
+  - name: fct_orders
+    description: One row per order with computed totals and payment rollups.
+    columns:
+      - name: order_id
+        tests: [unique, not_null]
+      - name: customer_id
         tests:
-          - not_null
-      - name: lifetime_value
-        tests:
-          - not_null
+          - relationships:
+              to: ref('dim_customers')
+              field: customer_id
+
+  - name: mart_daily_revenue
+    columns:
+      - name: order_date
+        tests: [unique, not_null]
+
+  - name: mart_product_performance
+    columns:
+      - name: product_id
+        tests: [unique, not_null]
+
+  - name: customer_orders
+    columns:
+      - name: customer_id
+        tests: [unique, not_null]

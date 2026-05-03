@@ -3,5 +3,6 @@ select
     customer_id,
     order_date,
     status,
-    amount
+    amount       as header_amount,
+    updated_at
 from {{ source('raw', 'orders') }}

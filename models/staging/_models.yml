@@ -2,24 +2,21 @@ version: 2
 
 models:
   - name: stg_customers
-    description: One row per customer, cleaned from raw.customers.
     columns:
       - name: customer_id
-        description: Surrogate key from the source system.
-        tests:
-          - unique
-          - not_null
+        tests: [unique, not_null]
       - name: email
         tests:
           - not_null
+          # Intentional gotcha: the seed inserts a duplicate email so this fails.
+          - unique:
+              config:
+                severity: warn
 
   - name: stg_orders
-    description: One row per order, cleaned from raw.orders.
     columns:
       - name: order_id
-        tests:
-          - unique
-          - not_null
+        tests: [unique, not_null]
       - name: customer_id
         tests:
           - not_null
@@ -28,8 +25,51 @@ models:
               field: customer_id
       - name: status
         tests:
+          # Intentional gotcha: the seed inserts a 'totally_made_up_status' row.
           - accepted_values:
-              values: ['completed', 'shipped', 'pending', 'returned']
-      - name: amount
+              values: ['completed', 'shipped', 'pending', 'returned', 'cancelled']
+              config:
+                severity: warn
+
+  - name: stg_products
+    columns:
+      - name: product_id
+        tests: [unique, not_null]
+      - name: sku
+        tests: [unique, not_null]
+
+  - name: stg_order_items
+    columns:
+      - name: order_item_id
+        tests: [unique, not_null]
+      - name: order_id
         tests:
           - not_null
+          - relationships:
+              to: ref('stg_orders')
+              field: order_id
+      - name: product_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_products')
+              field: product_id
+
+  - name: stg_payments
+    columns:
+      - name: payment_id
+        tests: [unique, not_null]
+      - name: order_id
+        tests:
+          - relationships:
+              to: ref('stg_orders')
+              field: order_id
+
+  - name: stg_events
+    columns:
+      - name: event_id
+        tests: [unique, not_null]
+      - name: event_type
+        tests:
+          - accepted_values:
+              values: ['page_view', 'add_to_cart', 'checkout', 'purchase']

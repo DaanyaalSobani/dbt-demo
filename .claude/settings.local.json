@@ -8,7 +8,10 @@
       "Bash(bash scripts/show_marts.sh)",
       "Bash(bash scripts/run_stored_procs.sh)",
       "Bash(docker pull *)",
-      "Bash(docker run *)"
+      "Bash(docker run *)",
+      "Bash(docker compose *)",
+      "Bash(docker exec *)",
+      "Bash(dbt build *)"
     ]
   }
 }

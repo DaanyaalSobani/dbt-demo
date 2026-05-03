@@ -19,5 +19,7 @@ models:
   dbt_demo:
     staging:
       +materialized: view
+    intermediate:
+      +materialized: ephemeral  # inlined as CTEs into downstream models
     marts:
       +materialized: table

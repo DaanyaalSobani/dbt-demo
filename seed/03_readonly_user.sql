@@ -4,10 +4,11 @@
 create user explorer with password 'explorer';
 grant connect on database dbt_demo to explorer;
 
--- Existing schemas
+-- Existing schemas (raw is created by 01_schema.sql, all tables seeded by 02)
 grant usage on schema raw to explorer;
 grant select on all tables in schema raw to explorer;
 alter default privileges in schema raw grant select on tables to explorer;
+alter default privileges for role dbt in schema raw grant select on tables to explorer;
 
 -- dbt will create these later; pre-grant default privileges so it Just Works
 create schema if not exists analytics;

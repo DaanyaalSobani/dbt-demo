@@ -10,10 +10,10 @@ select
     customer_id,
     order_date,
     status,
-    amount,
+    header_amount,
     current_timestamp as loaded_at
 from {{ ref('stg_orders') }}
 
 {% if is_incremental() %}
-    where order_date > (select coalesce(max(order_date), '1900-01-01') from {{ this }})
+    where order_id > (select coalesce(max(order_id), 0) from {{ this }})
 {% endif %}

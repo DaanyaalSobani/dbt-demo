@@ -3,6 +3,11 @@ version: 2
 sources:
   - name: raw
     schema: raw
+    description: Raw operational tables loaded directly from the source systems.
     tables:
       - name: customers
+      - name: products
       - name: orders
+      - name: order_items
+      - name: payments
+      - name: events
