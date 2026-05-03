@@ -4,6 +4,9 @@ A companion repo for my YouTube video about dbt.
 
 > 📺 **Watch the video:** _coming soon — link will go here_
 
+[Look at the data for this demo](https://dbt-test.dsobani.com/pg_data/)
+[Explore DBTs generated docs for this project](https://dbt-test.dsobani.com)
+
 ## What this repo shows
 
 A side-by-side comparison of two ways to transform data in a Postgres warehouse:
