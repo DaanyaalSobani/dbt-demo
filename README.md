@@ -115,6 +115,18 @@ docker compose up -d
 dbt build
 ```
 
+## How dbt finds this project
+
+When you run `dbt build` from the repo root, dbt has to figure out two things: "what project am I working with?" and "how do I connect to the database?" Here's what happens:
+
+1. **Project detection** — dbt walks up from the current directory looking for a `dbt_project.yml`. The presence of [dbt_project.yml](dbt_project.yml) at the repo root is what turns this folder into a dbt project. It tells dbt the project name (`dbt_demo`), where to find models, what materializations to default to, and which **profile** to use.
+
+2. **Profile resolution** — the profile name from `dbt_project.yml` (here, `dbt_demo`) has to be defined in a `profiles.yml` somewhere. By default dbt checks `~/.dbt/profiles.yml` (a system-wide file in your home directory) — this is what `dbt init` modifies and why most tutorials end up with credentials scattered across your machine.
+
+   **Since dbt-core 1.5+, dbt also checks for a `profiles.yml` next to `dbt_project.yml`.** Because we ship [profiles.yml](profiles.yml) in the repo root, dbt picks it up automatically — no `~/.dbt/` involvement, no `--profiles-dir` flag, no environment variable juggling. Clone the repo, run `dbt build`, done.
+
+This is why the project is fully self-contained: everything dbt needs to identify the project AND connect to the warehouse lives inside this directory.
+
 ## Connecting from VS Code
 
 Open the project in VS Code and accept the recommended extensions ([.vscode/extensions.json](.vscode/extensions.json)). The PostgreSQL connection profile is pre-baked in [.vscode/settings.json](.vscode/settings.json), so a `dbt-demo (local)` connection appears in the PostgreSQL sidebar — no manual setup.
