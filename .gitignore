@@ -1,0 +1,11 @@
+# Live AWS credentials live here — must never be committed
+.env
+
+# Build artifacts
+*.zip
+
+# Python
+__pycache__/
+
+# Local AWS config/cache
+.aws/
