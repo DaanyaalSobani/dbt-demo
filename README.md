@@ -192,10 +192,17 @@ starts a throwaway Postgres, loads **only** [seed/01_schema.sql](seed/01_schema.
 (DDL, zero rows), builds the staging views so the fixture introspection has
 relations to look at, and runs `dbt test --select test_type:unit`.
 
-Note it deliberately does *not* run the data tests — this repo ships a
-deliberately-failing `assert_no_negative_order_amounts`, which would keep CI
-permanently red. Data tests belong against a real warehouse on a schedule; unit
-tests belong on every commit.
+Note it deliberately does *not* run the data tests, and the reason is worth
+sitting with. A commit changes **source code**, so a commit-triggered check
+should only assert things that are a function of the source code. A unit test
+is exactly that — same SHA, same fixtures, same answer, forever. A data test
+asserts something about warehouse **state**, which moves on its own schedule: a
+load runs, someone backfills, a row lands. Wiring that to `push` produces red
+builds that nobody caused, which is how teams learn to ignore a badge.
+
+Data tests belong on a schedule, or immediately after a load, against a real
+warehouse. (This repo makes the point concrete: `assert_no_negative_order_amounts`
+is *designed* to fail on the seed data.)
 
 ### 7. Reset everything
 
