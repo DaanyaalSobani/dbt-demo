@@ -1,4 +1,5 @@
 # dbt for local development.
-# Unit tests (models/**/_unit_tests.yml) need dbt-core >= 1.8.
-dbt-core~=1.12.0
-dbt-postgres~=1.11.0
+# Unit tests (models/**/_unit_tests.yml) were added in dbt-core 1.8, which is
+# the only version constraint this project actually depends on.
+dbt-core>=1.8
+dbt-postgres>=1.8
