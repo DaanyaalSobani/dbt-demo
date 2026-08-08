@@ -1,0 +1,33 @@
+version: 2
+
+unit_tests:
+  # Same feature, the other two fixture styles: a CSV file on disk (empty cell
+  # == NULL) for the input, and inline dicts for the expectation.
+  - name: test_int_payments_per_order_ignores_null_amounts
+    description: >
+      raw.payments.amount is nullable. The COALESCE must treat a NULL payment as
+      0 toward total_paid while still counting it in payment_count, and surface
+      it separately in null_amount_payments.
+    model: int_payments_per_order
+    given:
+      - input: ref('stg_payments')
+        format: csv
+        fixture: stg_payments__mixed_nulls
+    expect:
+      rows:
+        # 25.00 + NULL + 30.00 -> 3 payments, 55.00 collected, 1 unusable.
+        - order_id: 1
+          payment_count: 3
+          total_paid: '55.00'
+          null_amount_payments: 1
+          first_paid_at: '2024-03-01 09:00:00'
+          last_paid_at: '2024-03-03 09:00:00'
+        # Every payment NULL: the order looks paid by count, but nothing landed.
+        - order_id: 2
+          payment_count: 1
+          # No scale here: with every amount NULL the sum comes back as an
+          # unconstrained numeric "0", not "0.00".
+          total_paid: 0
+          null_amount_payments: 1
+          first_paid_at: '2024-03-04 09:00:00'
+          last_paid_at: '2024-03-04 09:00:00'

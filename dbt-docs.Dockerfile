@@ -1,4 +1,5 @@
-FROM ghcr.io/dbt-labs/dbt-postgres:1.8.latest
+# 1.9 — unit tests (dbt >= 1.8) run as part of `dbt build` below.
+FROM ghcr.io/dbt-labs/dbt-postgres:1.9.latest
 
 WORKDIR /usr/app/dbt
 

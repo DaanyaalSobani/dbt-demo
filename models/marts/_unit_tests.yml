@@ -1,0 +1,79 @@
+version: 2
+
+# Unit tests (dbt >= 1.8). Unlike data tests, these never read warehouse data:
+# every ref()/source() in the model is swapped for the fixture rows below, the
+# model SQL runs against those literals, and the result is compared to `expect`.
+# They catch logic bugs before any data lands.
+#
+# GOTCHA (see README): for dict/csv fixtures dbt introspects the *real* relation
+# to learn each input's column types, so an input model has to exist in the
+# warehouse. Our `intermediate` models are materialized as `ephemeral`, so no
+# relation exists for them — those inputs use `format: sql`, which skips
+# introspection because the fixture declares its own types.
+
+unit_tests:
+  - name: test_fct_orders_missing_lines_and_payments
+    description: >
+      An order with no line items and no payment rows must still appear, with
+      the COALESCEs defaulting the rollups to 0 rather than dropping the row or
+      emitting NULLs.
+    model: fct_orders
+    given:
+      # stg_orders is a view, so the dict form works: dbt reads the column types
+      # off the relation and fills any column we omit with NULL.
+      - input: ref('stg_orders')
+        rows:
+          - {order_id: 1, customer_id: 10, order_date: '2024-01-15', status: 'placed', header_amount: 100.00}
+      # Ephemeral inputs — empty result sets, typed by the fixture itself.
+      - input: ref('int_orders_with_items')
+        format: sql
+        rows: |
+          select 0 as order_id, 0::numeric as line_total where false
+      - input: ref('int_payments_per_order')
+        format: sql
+        rows: |
+          select 0 as order_id, 0 as payment_count, 0::numeric as total_paid,
+                 0 as null_amount_payments where false
+    expect:
+      rows:
+        - order_id: 1
+          computed_total: 0
+          item_count: 0
+          payment_count: 0
+          total_paid: 0
+          null_amount_payments: 0
+          # Quoted so the decimal scale survives: YAML would read 100.00 as the
+          # float 100.0, and the actual/expected diff is string-based, so
+          # numeric(10,2) "100.00" would not match "100.0".
+          header_vs_lines_diff: '100.00'
+
+  - name: test_fct_orders_header_vs_lines_diff
+    description: >
+      header_vs_lines_diff is header_amount minus the summed line totals, and
+      each order only rolls up its own lines and payments (no cross-order bleed
+      through the joins).
+    model: fct_orders
+    given:
+      - input: ref('stg_orders')
+        rows:
+          - {order_id: 1, customer_id: 10, order_date: '2024-01-15', status: 'placed', header_amount: 100.00}
+          - {order_id: 2, customer_id: 20, order_date: '2024-01-16', status: 'shipped', header_amount: 50.00}
+      - input: ref('int_orders_with_items')
+        format: sql
+        rows: |
+          select 1 as order_id, 30.00::numeric as line_total
+          union all
+          select 1, 45.50
+          union all
+          select 2, 50.00
+      - input: ref('int_payments_per_order')
+        format: sql
+        rows: |
+          select 1 as order_id, 2 as payment_count, 75.50::numeric as total_paid,
+                 1 as null_amount_payments
+    expect:
+      rows:
+        # Underpaid / under-lined by 24.50 relative to the header.
+        - {order_id: 1, computed_total: '75.50', item_count: 2, payment_count: 2, total_paid: '75.50', null_amount_payments: 1, header_vs_lines_diff: '24.50'}
+        # No payment row at all: rollups default to 0, header matches lines.
+        - {order_id: 2, computed_total: '50.00', item_count: 1, payment_count: 0, total_paid: 0, null_amount_payments: 0, header_vs_lines_diff: '0.00'}

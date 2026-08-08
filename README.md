@@ -29,8 +29,8 @@ The goal is to let you run both, query both, and decide for yourself where dbt e
 # 1. Spin up the local Postgres (auto-seeds raw.customers and raw.orders)
 docker compose up -d
 
-# 2. Install dbt
-pip install dbt-core dbt-postgres
+# 2. Install dbt (>= 1.8 — unit tests need it)
+pip install -r requirements.txt
 
 # 3. Build everything
 dbt build
@@ -56,7 +56,8 @@ sudo apt-get install -y libpq5
 | [models/staging/](models/staging/) | `stg_customers`, `stg_orders` — views over the raw tables |
 | [models/marts/customer_orders.sql](models/marts/customer_orders.sql) | Table mart joining customers and orders |
 | [models/marts/orders_incremental.sql](models/marts/orders_incremental.sql) | Incremental table — only processes new orders on each run |
-| [tests/](tests/) and `_models.yml` files | Generic + singular tests on the models |
+| [tests/](tests/) and `_models.yml` files | Generic + singular data tests on the models |
+| `_unit_tests.yml` files, [tests/fixtures/](tests/fixtures/) | Unit tests — model logic checked against fixture rows, no warehouse data |
 | [stored_procs/](stored_procs/) | Same business logic written as plpgsql procedures, for the comparison |
 | [scripts/](scripts/) | Helper shell scripts (show data, add an order, install procs) |
 
@@ -111,7 +112,78 @@ dbt run --select staging.*               # everything in the staging folder
 
 This installs and calls the equivalent plpgsql in the `analytics_sp` schema. Diff a dbt model against its stored-proc counterpart and notice how much of the proc is boilerplate (drop/create, exception handling, manual incremental logic) vs. the dbt model which is mostly just the SELECT.
 
-### 6. Reset everything
+### 6. Unit test a model against fake rows (dbt >= 1.8)
+
+Data tests answer "is the data in my warehouse OK?". **Unit tests** answer "is the
+SQL I wrote correct?" — they feed hand-written rows into a model, run it, and
+compare the output to an expected result. No warehouse data is read.
+
+```bash
+dbt test --select test_type:unit          # all three
+dbt test --select fct_orders,test_type:unit
+```
+
+The tests live in [models/marts/_unit_tests.yml](models/marts/_unit_tests.yml) and
+[models/intermediate/_unit_tests.yml](models/intermediate/_unit_tests.yml).
+
+**How it works.** Each `ref()`/`source()` in the model is replaced by a CTE built
+from your fixture rows, and the model's own SQL is dropped in underneath
+unchanged. Run the command above and look at the compiled result:
+
+```bash
+cat target/compiled/dbt_demo/models/intermediate/_unit_tests.yml/models/intermediate/test_int_payments_per_order_ignores_null_amounts.sql
+```
+
+```sql
+with __dbt__cte__stg_payments as (
+-- Fixture for stg_payments
+select cast('1' as integer) as "payment_id", ..., cast('25.00' as numeric(10,2)) as "amount", ...
+union all
+select cast('2' as integer) as "payment_id", ..., cast(null   as numeric(10,2)) as "amount", ...
+...
+)
+select
+    order_id,
+    count(*)                                as payment_count,
+    sum(coalesce(amount, 0))                as total_paid,
+    count(*) filter (where amount is null)  as null_amount_payments,
+    ...
+from __dbt__cte__stg_payments
+group by order_id
+```
+
+That's the whole trick — a CTE swap. The model file is never edited, and because
+the fixtures are literals the test runs on an empty database.
+
+Fixtures come in three flavours, all three are used here:
+
+| Format | Where | Why |
+| --- | --- | --- |
+| inline dicts | `stg_orders` input, and every `expect:` block | most readable; omitted columns default to NULL |
+| `format: csv` + `fixture:` | [tests/fixtures/stg_payments__mixed_nulls.csv](tests/fixtures/stg_payments__mixed_nulls.csv) | good for wide tables; an empty cell means NULL |
+| `format: sql` | the `int_*` inputs in `fct_orders` | see the gotcha below |
+
+**Gotchas worth knowing:**
+
+- **Ephemeral inputs need `format: sql`.** For dict and csv fixtures dbt
+  introspects the real relation to learn each input's column types. Our
+  `intermediate` models are `+materialized: ephemeral`, so no relation exists and
+  you get `Not able to get columns for unit test '...' because the relation
+  doesn't exist`. A `format: sql` fixture declares its own types
+  (`0::numeric as line_total`) and skips introspection entirely.
+- **Decimal scale matters.** Expected and actual are compared as rendered
+  strings, and YAML reads `100.00` as the float `100.0`, which won't match a
+  `numeric(10,2)` result. Quote it: `header_vs_lines_diff: '100.00'`.
+- **`dbt build` runs unit tests before the model is built**, but skips them if
+  anything upstream fails — this repo's deliberately-failing
+  `assert_no_negative_order_amounts` does exactly that. Use
+  `dbt test --select test_type:unit` to run them on their own.
+
+To watch one fail, flip a `coalesce(..., 0)` to plain `null` in
+[fct_orders.sql](models/marts/fct_orders.sql) and re-run — dbt prints a
+cell-level diff of expected vs actual.
+
+### 7. Reset everything
 
 ```bash
 docker compose down -v       # wipes the volume — re-runs the seed scripts
