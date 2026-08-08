@@ -1,0 +1,56 @@
+name: dbt unit tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+
+    # dbt unit tests need a live connection (the fixtures are compiled into a
+    # query and executed), but they never read any rows — see the schema-only
+    # step below.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: dbt
+          POSTGRES_PASSWORD: dbt
+          POSTGRES_DB: dbt_demo
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U dbt -d dbt_demo"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dbt
+        run: pip install -r requirements.txt
+
+      # DDL only — no 02_data.sql. The raw tables are created empty, which is
+      # enough for the staging views to compile.
+      - name: Create raw schema (no data)
+        env:
+          PGPASSWORD: dbt
+        run: psql -h localhost -U dbt -d dbt_demo -v ON_ERROR_STOP=1 -f seed/01_schema.sql
+
+      # Unit tests with dict/csv fixtures introspect the real relation to learn
+      # each input's column types, so the staging views have to exist. They're
+      # views over empty tables, so this reads nothing.
+      - name: Build staging views
+        run: dbt run --select staging
+
+      - name: Run unit tests
+        run: dbt test --select test_type:unit

@@ -1,5 +1,7 @@
 # dbt-demo
 
+[![dbt unit tests](https://github.com/DaanyaalSobani/dbt-demo/actions/workflows/dbt-unit-tests.yml/badge.svg)](https://github.com/DaanyaalSobani/dbt-demo/actions/workflows/dbt-unit-tests.yml)
+
 A companion repo for my YouTube video about dbt.
 
 > 📺 **Watch the video:** _coming soon — link will go here_
@@ -182,6 +184,18 @@ Fixtures come in three flavours, all three are used here:
 To watch one fail, flip a `coalesce(..., 0)` to plain `null` in
 [fct_orders.sql](models/marts/fct_orders.sql) and re-run — dbt prints a
 cell-level diff of expected vs actual.
+
+**In CI.** This is the part that makes unit tests worth it: they run on every
+push and PR without a warehouse full of data.
+[.github/workflows/dbt-unit-tests.yml](.github/workflows/dbt-unit-tests.yml)
+starts a throwaway Postgres, loads **only** [seed/01_schema.sql](seed/01_schema.sql)
+(DDL, zero rows), builds the staging views so the fixture introspection has
+relations to look at, and runs `dbt test --select test_type:unit`.
+
+Note it deliberately does *not* run the data tests — this repo ships a
+deliberately-failing `assert_no_negative_order_amounts`, which would keep CI
+permanently red. Data tests belong against a real warehouse on a schedule; unit
+tests belong on every commit.
 
 ### 7. Reset everything
 
